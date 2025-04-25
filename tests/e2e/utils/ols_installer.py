@@ -13,7 +13,7 @@ from tests.e2e.utils.wait_for_ols import wait_for_ols
 
 OC_COMMAND_RETRY_COUNT = 120
 OC_COMMAND_RETRY_DELAY = 5
-
+import ipdb
 
 def create_and_config_sas() -> tuple[str, str]:
     """Create and provide access to service accounts for testing.
@@ -310,11 +310,9 @@ def install_ols() -> tuple[str, str, str]:  # pylint: disable=R0915  # noqa: C90
         )
     except subprocess.CalledProcessError:
         print("olsconfig does not yet exist. Creating it.")
-
     crd_yml_name = f"olsconfig.crd.{provider}"
     try:
         if len(provider_list) == 1:
-            crd_yml_name = f"olsconfig.crd.{provider}"
             if os.getenv("INTROSPECTION_ENABLED", "n") == "y":
                 print("Cluster introspection is enabled.")
                 crd_yml_name += "_introspection"
