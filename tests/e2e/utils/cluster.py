@@ -381,10 +381,11 @@ def wait_for_running_pod(
                     if container == "true"
                 ]
             )
-            == 2
+            >= 2
         )
 
     # wait for the two containers in the server pod to become ready
+    # three in case we're running mcp server
     r = retry_until_timeout_or_success(
         OC_COMMAND_RETRY_COUNT,
         5,
