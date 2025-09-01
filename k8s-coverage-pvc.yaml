@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ols-coverage-data
+  namespace: openshift-lightspeed
+  labels:
+    app: ols-coverage
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: gp3-csi  # Adjust based on your cluster's available storage classes
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ols-coverage-scripts
+  namespace: openshift-lightspeed
+  labels:
+    app: ols-coverage
+    component: scripts
+data:
+  collect-coverage.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Collecting coverage data from OLS pod..."
+    
+    # Wait for coverage file to be created
+    COVERAGE_FILE="/coverage-data/.coverage"
+    TIMEOUT=300  # 5 minutes
+    ELAPSED=0
+    
+    while [ ! -f "$COVERAGE_FILE" ] && [ $ELAPSED -lt $TIMEOUT ]; do
+        echo "Waiting for coverage file... ($ELAPSED/$TIMEOUT seconds)"
+        sleep 10
+        ELAPSED=$((ELAPSED + 10))
+    done
+    
+    if [ ! -f "$COVERAGE_FILE" ]; then
+        echo "ERROR: Coverage file not found after $TIMEOUT seconds"
+        exit 1
+    fi
+    
+    # Generate coverage reports
+    cd /app-root
+    
+    echo "Generating coverage report..."
+    coverage report -m --data-file="$COVERAGE_FILE"
+    
+    echo "Generating HTML coverage report..."
+    coverage html --data-file="$COVERAGE_FILE" -d /coverage-data/htmlcov
+    
+    echo "Generating JSON coverage report..."
+    coverage json --data-file="$COVERAGE_FILE" -o /coverage-data/coverage.json
+    
+    echo "Coverage collection complete!"
+    echo "Files available in /coverage-data:"
+    ls -la /coverage-data/
+    
+    # Keep the pod running so coverage data can be extracted
+    echo "Pod will remain running. Extract coverage data and then delete the pod."
+    tail -f /dev/null
+    
+  extract-coverage.sh: |
+    #!/bin/bash
+    # Script to run outside the pod to extract coverage data
+    set -e
+    
+    POD_NAME=${1:-ols-coverage}
+    NAMESPACE=${2:-openshift-lightspeed}
+    LOCAL_DIR=${3:-./coverage-results}
+    
+    echo "Extracting coverage data from pod $POD_NAME in namespace $NAMESPACE..."
+    
+    # Create local directory
+    mkdir -p "$LOCAL_DIR"
+    
+    # Copy coverage files
+    kubectl cp "$NAMESPACE/$POD_NAME:/coverage-data" "$LOCAL_DIR" || {
+        echo "Failed to copy coverage data. Trying individual files..."
+        kubectl cp "$NAMESPACE/$POD_NAME:/coverage-data/.coverage" "$LOCAL_DIR/.coverage" 2>/dev/null || true
+        kubectl cp "$NAMESPACE/$POD_NAME:/coverage-data/coverage.json" "$LOCAL_DIR/coverage.json" 2>/dev/null || true
+        kubectl cp "$NAMESPACE/$POD_NAME:/coverage-data/htmlcov" "$LOCAL_DIR/htmlcov" 2>/dev/null || true
+    }
+    
+    echo "Coverage data extracted to $LOCAL_DIR"
+    echo "Contents:"
+    ls -la "$LOCAL_DIR"
+    
+    if [ -f "$LOCAL_DIR/coverage.json" ]; then
+        echo "Coverage summary:"
+        python3 -c "
+import json
+with open('$LOCAL_DIR/coverage.json') as f:
+    data = json.load(f)
+    print(f\"Total coverage: {data['totals']['percent_covered']:.2f}%\")
+    print(f\"Lines covered: {data['totals']['covered_lines']}/{data['totals']['num_statements']}\")
+"
+    fi
