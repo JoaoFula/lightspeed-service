@@ -44,6 +44,7 @@ These specs define the requirements, behaviors, and architecture for the OLS lig
 | [auth.md](how/auth.md) | Strategy pattern, K8sClientSingleton, TokenReview/SubjectAccessReview, noop variants, endpoint wiring |
 | [quota.md](how/quota.md) | Limiter abstraction, PostgreSQL schema, factory, scheduler daemon thread, token usage history |
 | [e2e-bedrock.md](how/e2e-bedrock.md) | E2E test infrastructure for Bedrock: CR templates, IAM credential handling, CI suite entries |
+| [e2e-rhoai.md](how/e2e-rhoai.md) | Reusable RHOAI/KServe/vLLM provisioning and model-profile selection |
 
 ## Scope
 
@@ -63,6 +64,7 @@ AI agents. Content is optimized for precision and machine consumption.
 | Understand the API | `what/api.md` |
 | Navigate the codebase | `how/project-structure.md` |
 | See what's planned | Look for `[PLANNED: OLS-XXXX]` in `what/` specs |
+| Reuse RHOAI/vLLM test provisioning | `how/e2e-rhoai.md` |
 
 ## Cross-Reference
 
