@@ -18,6 +18,9 @@ spec:
         deploymentName: gpt-6-luna
         models:
           - name: gpt-6-luna
+            parameters:
+              reasoningConfig:
+                effort: medium
         url: 'https://ols-test.openai.azure.com/'
   ols:
     defaultModel: gpt-6-luna
